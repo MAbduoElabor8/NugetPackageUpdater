@@ -54,6 +54,7 @@ stages:
 
           - ${{each project in parameters.projectsToUpdate}}:
             - script: |
+                set -uxe
                 git clone git@bitbucket.org:$(BB_ORGANISATION_NAME)/${{ project }}.git
 
                 if [ -d "${{ project }}" ]; then
@@ -66,6 +67,7 @@ stages:
                   nukeeper_result="$(nukeeper update -m 100)"
                   echo "$nukeeper_result"
                   nukeeper_result_formatted="${nukeeper_result//$'\n'/\\n\\n}"
+                  echo $nukeeper_result_formatted
 
                   # only push changes if there are any changes listed in git status
                   if [[ `git status --porcelain` ]]; then
