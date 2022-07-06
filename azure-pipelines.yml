@@ -63,7 +63,7 @@ stages:
                   git checkout -b $branch_name
 
                   echo "Running nukeeper"
-                  nukeeper_result=$(nukeeper update -m 100)
+                  nukeeper_result="$(nukeeper update -m 100)"
                   echo $nukeeper_result
 
                   # only push changes if there are any changes listed in git status
@@ -81,7 +81,8 @@ stages:
                             "branch": {
                                 "name": "'$branch_name'"
                             }
-                        }
+                        },
+                        "description": "some description hello world!"
                     }' | jq -r '.links.html.href')
 
                     # Append created PR URL to pull requests file
