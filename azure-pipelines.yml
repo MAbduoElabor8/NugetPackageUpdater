@@ -1,0 +1,107 @@
+trigger: none
+
+variables:
+  - group: bitbucket-credentials
+  - name: PULL_REQUESTS_FILE
+    value: $(System.DefaultWorkingDirectory)/pullRequestsRaised.txt
+
+parameters:
+  - name: projectsToUpdate
+    displayName: Projects to update
+    type: object
+    default:
+      - "test-dotnet-project"
+
+stages:
+  - stage: RunPackageUpdater
+    displayName: Run Package Updater
+    jobs:
+      - job: UpdatePackages
+        displayName: Update packages
+        pool:
+          vmImage: 'ubuntu-latest'
+        steps:
+          - checkout: none
+
+          - task: InstallSSHKey@0
+            displayName: 'Install Bitbucket SSH key'
+            inputs:
+              knownHostsEntry: $(BB_KEY_FINGERPRINT)
+              sshPublicKey: $(BB_PUBLIC_KEY)
+              sshKeySecureFile: $(BB_PRIVATE_KEY_FILE)
+
+          - script: |
+              # add bitbucket to known hosts
+              ssh -o "StrictHostKeyChecking no" bitbucket.org
+
+              echo "Working directory contents:"
+              ls
+              
+              echo "Environment Variables:"
+              env | sort
+              
+              echo "Installing nukeeper"
+              dotnet tool install nukeeper --global
+
+              echo "Configuring git user"
+              git config --global user.name "Package Updater"
+              git config --global user.email "pipelines@your-company.com"
+
+              echo "Configuring BB basic auth"
+              basic_auth=$(echo -n "$(BB_APP_USERNAME):$(BB_APP_PASSWORD)" | base64)
+              echo "##vso[task.setvariable variable=BASIC_AUTH]$basic_auth"
+            displayName: Install nukeeper, configure git
+
+          - ${{each project in parameters.projectsToUpdate}}:
+            - script: |
+                git clone git@bitbucket.org:$(BB_ORGANISATION_NAME)/${{ project }}.git
+
+                if [ -d "${{ project }}" ]; then
+                  cd ${{ project }}
+
+                  branch_name="package-update/$(Build.BuildId)"
+                  git checkout -b $branch_name
+
+                  echo "Running nukeeper"
+                  nukeeper_result=$(nukeeper update -m 100)
+
+                  # only push changes if there are any changes listed in git status
+                  if [[ `git status --porcelain` ]]; then
+                    git add -A
+                    git commit -m "Update NuGet packages"
+                    git push origin package-update/$(Build.BuildId)
+
+                    pr_url=$(curl --location --request POST 'https://api.bitbucket.org/2.0/repositories/$(BB_ORGANISATION_NAME)/'${{ project }}'/pullrequests' \
+                    --header 'Authorization: Basic '$(BASIC_AUTH)'' \
+                    --header 'Content-Type: application/json' \
+                    --data-raw '{
+                        "title": "Package update '$(Build.BuildId)'",
+                        "source": {
+                            "branch": {
+                                "name": "'$branch_name'"
+                            }
+                        },
+                        "description": "'$nukeeper_result'"
+                    }' | jq -r '.links.html.href')
+
+                    # Append created PR URL to pull requests file
+                    echo $pr_url >> $(PULL_REQUESTS_FILE)
+                  else
+                    echo "Everything already up to date, no branches pushed"
+                  fi
+
+                else
+                  echo "##vso[task.logissue type=warning]Repository ${{ project }} not found or inaccessible!"
+                fi
+              displayName: Update ${{ project }}
+
+          - script: |
+              if [ -f "$(PULL_REQUESTS_FILE)" ]; then
+                echo "Pull requests raised:"
+                cat $(PULL_REQUESTS_FILE)
+              else
+                echo "No pull requests raised, everything up to date"
+              fi
+            displayName: Show PRs raised
+            condition: always()
+          
