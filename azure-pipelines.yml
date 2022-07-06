@@ -71,7 +71,7 @@ stages:
                     git commit -m "Update NuGet packages"
                     git push origin package-update/$(Build.BuildId)
 
-                    pr_url=$(curl --location --request POST 'https://api.bitbucket.org/2.0/repositories/$(BB_ORGANISATION_NAME)/'${{ project }}'/pullrequests' \
+                    pr_url=$(curl --location --request POST 'https://api.bitbucket.org/2.0/repositories/'$(BB_ORGANISATION_NAME)'/'${{ project }}'/pullrequests' \
                     --header 'Authorization: Basic '$(BASIC_AUTH)'' \
                     --header 'Content-Type: application/json' \
                     --data-raw '{
