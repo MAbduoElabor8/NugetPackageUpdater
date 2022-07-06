@@ -82,7 +82,7 @@ stages:
                                 "name": "'$branch_name'"
                             }
                         },
-                        "description": "some description hello world!"
+                        "description": "\"$nukeeper_result\""
                     }' | jq -r '.links.html.href')
 
                     # Append created PR URL to pull requests file
