@@ -64,6 +64,7 @@ stages:
 
                   echo "Running nukeeper"
                   nukeeper_result=$(nukeeper update -m 100)
+                  echo $nukeeper_result
 
                   # only push changes if there are any changes listed in git status
                   if [[ `git status --porcelain` ]]; then
@@ -80,8 +81,7 @@ stages:
                             "branch": {
                                 "name": "'$branch_name'"
                             }
-                        },
-                        "description": "'$nukeeper_result'"
+                        }
                     }' | jq -r '.links.html.href')
 
                     # Append created PR URL to pull requests file
