@@ -52,7 +52,7 @@ steps:
           git checkout -b $branch_name
 
           echo "Running nukeeper"
-          nukeeper_result="$(nukeeper update -m 100 -a 1d)"
+          nukeeper_result="$(nukeeper update --maxpackageupdates 100 --age 1d)"
           echo "$nukeeper_result"
 
           nukeeper_result_formatted="${nukeeper_result//$'\n'/\\n\\n}"
