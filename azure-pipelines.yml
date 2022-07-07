@@ -26,17 +26,17 @@ steps:
       sshKeySecureFile: $(BB_PRIVATE_KEY_FILE)
 
   - script: |
-      # add bitbucket to known hosts
+      echo "Add bitbucket to known hosts"
       ssh -o "StrictHostKeyChecking no" bitbucket.org
 
       echo "Configuring git user"
       git config --global user.name "Package Updater"
       git config --global user.email "pipelines@your-company.com"
 
-      echo "Configuring BB basic auth"
+      echo "Encoding Bitbucket basic auth"
       basic_auth=$(echo -n "$(BB_APP_USERNAME):$(BB_APP_PASSWORD)" | base64)
       echo "##vso[task.setvariable variable=BASIC_AUTH]$basic_auth"
-    displayName: Install nukeeper, configure git
+    displayName: Configure git
 
   - script: dotnet tool install nukeeper --global
     displayName: Install NuKeeper
@@ -52,7 +52,7 @@ steps:
           git checkout -b $branch_name
 
           echo "Running nukeeper"
-          nukeeper_result="$(nukeeper update -m 100)"
+          nukeeper_result="$(nukeeper update -m 100 -a 1d)"
           echo "$nukeeper_result"
 
           nukeeper_result_formatted="${nukeeper_result//$'\n'/\\n\\n}"
