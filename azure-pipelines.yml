@@ -84,7 +84,7 @@ steps:
 
         else
           echo "##vso[task.logissue type=warning]Repository ${{ project }} not found or inaccessible!"
-          exit 1
+          echo "##vso[task.complete result=SucceededWithIssues;]"
         fi
       displayName: Update ${{ project }}
       condition: always()
