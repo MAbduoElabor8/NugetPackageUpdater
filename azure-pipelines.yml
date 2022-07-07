@@ -87,6 +87,7 @@ steps:
           exit 1
         fi
       displayName: Update ${{ project }}
+      condition: always()
 
   - script: |
       if [ -f "$(PULL_REQUESTS_FILE)" ]; then
